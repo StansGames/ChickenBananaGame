@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHICKEN BANANA: Psychedelic Showdown!</title>
+
+<style>
+    :root {
+        --yellow: #ffe600;
+        --orange: #ff7b00;
+        --pink: #ff3dba;
+        --purple: #791aff;
+        --dark: #241333;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--yellow);
+        color: var(--dark);
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        overflow-x: hidden;
+    }
+
+    button {
+        font: inherit;
+        cursor: pointer;
+        border: 3px solid var(--dark);
+        border-radius: 12px;
+        padding: 12px 22px;
+        background: var(--pink);
+        color: white;
+        font-weight: 900;
+        box-shadow: 4px 4px 0 var(--dark);
+        transition: transform .1s;
+    }
+
+    button:hover { transform: translate(-2px, -2px); }
+    button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--dark); }
+
+    header {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 12px 10px 4px;
+    }
+
+    h1 {
+        font-size: clamp(26px, 5vw, 48px);
+        line-height: 1;
+        margin: 5px 0;
+        font-weight: 1000;
+        letter-spacing: -2px;
+        text-shadow: 3px 3px 0 white, 6px 6px 0 var(--pink);
+    }
+
+    .subtitle {
+        font-size: 13px;
+        font-weight: bold;
+        letter-spacing: 3px;
+        margin: 12px 0;
+    }
+
+    #hud {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+        position: relative;
+        z-index: 3;
+    }
+
+    .hud-item {
+        background: white;
+        border: 3px solid var(--dark);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-size: 14px;
+        font-weight: 900;
+        box-shadow: 3px 3px 0 var(--dark);
+    }
+
+    #gameWrap {
+        position: relative;
+        width: min(1100px, 96vw);
+        margin: 8px auto;
+        border: 5px solid var(--dark);
+        border-radius: 15px;
+        overflow: hidden;
+        background: #fff500;
+        box-shadow: 8px 8px 0 var(--dark);
+    }
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 11 / 7;
+        touch-action: none;
+    }
+
+    #overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 14px;
+        background: rgba(255, 230, 0, .76);
+        backdrop-filter: blur(3px);
+        text-align: center;
+    }
+
+    .panel {
+        width: min(550px, 100%);
+        padding: 22px;
+        background: white;
+        border: 5px solid var(--dark);
+        border-radius: 20px;
+        box-shadow: 8px 8px 0 var(--pink);
+    }
+
+    .panel h2 {
+        font-size: clamp(26px, 5vw, 42px);
+        line-height: 1;
+        margin: 0 0 12px;
+        text-transform: uppercase;
+    }
+
+    .panel p {
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .instructions {
+        margin: 15px 0;
+        padding: 12px;
+        background: #fff7b0;
+        border: 2px dashed var(--dark);
+        border-radius: 10px;
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.8;
+    }
+
+    .hidden { display: none !important; }
+
+    #message {
+        text-align: center;
+        min-height: 22px;
+        font-size: 13px;
+        font-weight: 900;
+        padding: 5px;
+    }
+
+    #reward {
+        position: relative;
+        z-index: 5;
+        width: min(900px, 95vw);
+        margin: 22px auto;
+        padding: 20px;
+        text-align: center;
+        background: white;
+        border: 5px solid var(--dark);
+        border-radius: 18px;
+        box-shadow: 8px 8px 0 var(--pink);
+    }
+
+    #reward h2 {
+        font-size: clamp(24px, 5vw, 42px);
+        margin: 0 0 8px;
+    }
+
+    #videoFrame {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border: 4px solid var(--dark);
+        border-radius: 10px;
+        background: black;
+        margin-top: 12px;
+    }
+
+    #playVideoFallback {
+        margin-top: 12px;
+        background: #791aff;
+    }
+
+    .footer {
+        text-align: center;
+        padding: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    /* Touch controls for phones and tablets. */
+    #touchControls {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px;
+        user-select: none;
+    }
+
+    #touchControls button {
+        min-width: 62px;
+        min-height: 48px;
+        padding: 8px;
+        font-size: 18px;
+        background: white;
+        color: var(--dark);
+    }
+
+    #touchControls .fire {
+        background: var(--pink);
+        color: white;
+    }
+
+    @media (pointer: coarse), (max-width: 700px) {
+        #touchControls { display: flex; }
+        .panel { padding: 15px; }
+        .instructions { font-size: 12px; }
+        .hud-item { padding: 6px 9px; font-size: 12px; }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🐔 CHICKEN BANANA 🍌</h1>
+    <div class="subtitle">A PSYCHEDELIC POULTRY SHOOTOUT!</div>
+</header>
+
+<div id="hud">
+    <div class="hud-item">🍌 AMMO: <span id="ammo">0</span></div>
+    <div class="hud-item">🎯 CHICKEN HITS: <span id="hits">0</span>/10</div>
+    <div class="hud-item">❤️ LIVES: <span id="lives">3</span></div>
+    <div class="hud-item">⭐ SCORE: <span id="score">0</span></div>
+</div>
+
+<div id="gameWrap">
+    <canvas id="game" width="1100" height="700"></canvas>
+
+    <div id="overlay">
+        <div class="panel">
+            <h2 id="panelTitle">Welcome to Banana Madness!</h2>
+            <p id="panelDescription">
+                The chickens are enormous. The bananas are ammunition.
+                The pizzas are basically quicksand. What could possibly go wrong?
+            </p>
+
+            <div class="instructions">
+                <b>🎮 HOW TO PLAY</b><br>
+                ⬅️ ➡️ Move left and right<br>
+                ⬆️ ⬇️ Move up and down<br>
+                <b>SPACE</b> — Fire a banana cannonball<br>
+                Collect the bananas the chickens drop to reload.<br>
+                Hit a chicken <b>10 times</b> to win!<br>
+                Avoid chickens landing on you and steer clear of giant pizzas.
+                <br><br>
+                <b>Touchscreen:</b> Use the direction buttons and FIRE.
+            </div>
+
+            <button id="startButton">LET'S GO! 🍌</button>
+        </div>
+    </div>
+</div>
+
+<div id="touchControls">
+    <button data-key="ArrowLeft">⬅️</button>
+    <button data-key="ArrowUp">⬆️</button>
+    <button data-key="ArrowDown">⬇️</button>
+    <button data-key="ArrowRight">➡️</button>
+    <button class="fire" data-key="Space">🔥 FIRE</button>
+</div>
+
+<div id="message">Collect bananas. Fire bananas. Survive the poultry apocalypse.</div>
+
+<section id="reward" class="hidden">
+    <h2>🎉 BANANA VICTORY! 🎉</h2>
+    <p>You defeated the giant chicken! Now it's time for your musical reward.</p>
+
+    <iframe
+        id="videoFrame"
+        title="Chicken Banana victory song"
+        src="about:blank"
+        allow="autoplay; encrypted-media; picture-in-picture"
+        allowfullscreen>
+    </iframe>
+
+    <p id="videoMessage">
+        If the song doesn't start automatically, press the button below.
+    </p>
+
+    <button id="playVideoFallback">▶ PLAY CHICKEN BANANA SONG</button>
+    <br><br>
+    <button id="rewardRestart">PLAY AGAIN</button>
+</section>
+
+<div class="footer">
+    MADE WITH BANANAS, CHAOS & QUESTIONABLE CHICKEN SCIENCE.
+</div>
+
+<script>
+(() => {
+    "use strict";
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const $ = id => document.getElementById(id);
+
+    const hud = {
+        ammo: $("ammo"),
+        hits: $("hits"),
+        lives: $("lives"),
+        score: $("score")
+    };
+
+    const overlay = $("overlay");
+    const panelTitle = $("panelTitle");
+    const panelDescription = $("panelDescription");
+    const startButton = $("startButton");
+    const message = $("message");
+
+    const reward = $("reward");
+    const videoFrame = $("videoFrame");
+    const playVideoFallback = $("playVideoFallback");
+
+    const WIN_HITS = 10;
+    const MAX_LIVES = 3;
+
+    let running = false;
+    let gameOver = false;
+    let won = false;
+
+    let lastTime = 0;
+    let elapsed = 0;
+    let animationFrame = 0;
+
+    let player;
+    let chicken;
+    let bananas = [];
+    let shots = [];
+    let pizzas = [];
+    let particles = [];
+
+    let score = 0;
+    let ammo = 0;
+    let lives = MAX_LIVES;
+    let chickenHits = 0;
+
+    let dropTimer = 0;
+    let chickenDirectionTimer = 0;
+    let damageCooldown = 0;
+    let fireCooldown = 0;
+    let pizzaDamageTimer = 0;
+
+    let keys = Object.create(null);
+    let audioContext = null;
+
+    // Sound effects use the built-in Web Audio API, so no sound assets are needed.
+    function playTone(frequency = 440, duration = 0.08, type = "sine", volume = 0.04) {
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (audioContext.state === "suspended") {
+                audioContext.resume();
+            }
+
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            oscillator.type = type;
+            oscillator.frequency.value = frequency;
+            gain.gain.setValueAtTime(volume, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(
+                0.001,
+                audioContext.currentTime + duration
+            );
+
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + duration);
+        } catch (e) {
+            // Sound effects are optional; the game remains playable without them.
+        }
+    }
+
+    function rand(min, max) {
+        return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function updateHUD() {
+        hud.ammo.textContent = ammo;
+        hud.hits.textContent = chickenHits;
+        hud.lives.textContent = lives;
+        hud.score.textContent = score;
+    }
+
+    function resetGame() {
+        player = {
+            x: 150,
+            y: H * 0.65,
+            r: 19,
+            speed: 245,
+            squish: 0
+        };
+
+        chicken = {
+            x: W * 0.72,
+            y: H * 0.42,
+            r: 68,
+            vx: 105,
+            vy: 45,
+            hp: 0,
+            bob: 0,
+            squashTimer: 0,
+            targetX: W * 0.65,
+            targetY: H * 0.5
+        };
+
+        bananas = [];
+        shots = [];
+        particles = [];
+
+        pizzas = [
+            { x: W * 0.36, y: H * 0.32, r: 67, spin: 0.3 },
+            { x: W * 0.56, y: H * 0.76, r: 77, spin: 1.1 },
+            { x: W * 0.84, y: H * 0.76, r: 59, spin: 2.2 }
+        ];
+
+        score = 0;
+        ammo = 0;
+        lives = MAX_LIVES;
+        chickenHits = 0;
+
+        dropTimer = 1.2;
+        chickenDirectionTimer = 1.5;
+        damageCooldown = 0;
+        fireCooldown = 0;
+        pizzaDamageTimer = 0;
+
+        elapsed = 0;
+        gameOver = false;
+        won = false;
+        keys = Object.create(null);
+
+        reward.classList.add("hidden");
+        overlay.classList.add("hidden");
+
+        updateHUD();
+        message.textContent = "Collect bananas. Fire bananas. Avoid pizzas!";
+    }
+
+    function startGame() {
+        // Calling the start handler is a user gesture. We initialize audio here.
+        // The victory video is also loaded with autoplay=1, but some browsers
+        // block autoplay with sound. A visible play button is provided as fallback.
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === "suspended") audioContext.resume();
+        } catch (e) {}
+
+        resetGame();
+        running = true;
+        lastTime = performance.now();
+
+        if (!animationFrame) {
+            animationFrame = requestAnimationFrame(loop);
+        }
+    }
+
+    function stopGame() {
+        running = false;
+        gameOver = true;
+        keys = Object.create(null);
+    }
+
+    function endGame(victory) {
+        if (gameOver) return;
+
+        running = false;
+        gameOver = true;
+        won = victory;
+
+        keys = Object.create(null);
+
+        if (victory) {
+            score += 1000;
+            updateHUD();
+
+            panelTitle.textContent = "YOU DID IT! 🍌";
+            panelDescription.textContent =
+                "The giant chicken has been defeated! Enjoy your musical victory reward.";
+
+            startButton.textContent = "PLAY AGAIN";
+            overlay.classList.remove("hidden");
+
+            message.textContent = "CHICKEN DEFEATED! YOUR BANANA LEGEND LIVES ON!";
+
+            reward.classList.remove("hidden");
+            reward.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+            playTone(880, 0.15, "triangle", 0.06);
+            setTimeout(() => playTone(1175, 0.2, "triangle", 0.06), 120);
+
+            startVictoryVideo();
+        } else {
+            panelTitle.textContent = "SQUASHED! 🍕";
+            panelDescription.textContent =
+                "The chickens and pizzas won this round. Dust yourself off and try again!";
+
+            startButton.textContent = "TRY AGAIN";
+            overlay.classList.remove("hidden");
+
+            message.textContent = "GAME OVER! Three lives gone. The chickens remain undefeated.";
+            playTone(150, 0.3, "sawtooth", 0.05);
+        }
+    }
+
+    function startVictoryVideo() {
+        const videoId = "ig7EKb6BrQk";
+
+        // The game begins after a real click, but that gesture may not carry over
+        // to a later iframe playback. We request autoplay with sound and expose a
+        // visible fallback in case the browser or YouTube blocks it.
+        videoFrame.src =
+            "https://www.youtube.com/embed/" + videoId +
+            "?autoplay=1&playsinline=1&rel=0";
+
+        playVideoFallback.classList.remove("hidden");
+    }
+
+    function playVictoryVideo() {
+        const videoId = "ig7EKb6BrQk";
+
+        videoFrame.src =
+            "https://www.youtube.com/embed/" + videoId +
+            "?autoplay=1&playsinline=1&rel=0";
+
+        $("videoMessage").textContent =
+            "If playback is still blocked, check your browser's media permissions.";
+    }
+
+    function spawnBanana(x, y) {
+        bananas.push({
+            x: clamp(x, 24, W - 24),
+            y: clamp(y, 24, H - 24),
+            r: 13,
+            bob: Math.random() * Math.PI * 2,
+            life: 15
+        });
+
+        // Limit the number of dropped pickups in the arena.
+        if (bananas.length > 30) bananas.shift();
+
+        for (let i = 0; i < 5; i++) {
+            particles.push({
+                x, y,
+                vx: rand(-50, 50),
+                vy: rand(-70, 10),
+                life: rand(0.2, 0.5),
+                maxLife: 0.5,
+                size: rand(2, 5),
+                color: "#fff500"
+            });
+        }
+    }
+
+    function spawnParticles(x, y, color, count = 10) {
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x, y,
+                vx: rand(-120, 120),
+                vy: rand(-120, 120),
+                life: rand(0.25, 0.7),
+                maxLife: 0.7,
+                size: rand(3, 8),
+                color
+            });
+        }
+    }
+
+    function fireBanana() {
+        if (!running || ammo <= 0 || fireCooldown > 0) {
+            if (ammo <= 0) {
+                message.textContent = "OUT OF BANANAS! Go collect some!";
+            }
+            return;
+        }
+
+        ammo--;
+        fireCooldown = 0.28;
+
+        // Shots aim toward the chicken, so aiming skills are not required.
+        const dx = chicken.x - player.x;
+        const dy = chicken.y - player.y;
+        const length = Math.max(1, Math.hypot(dx, dy));
+
+        shots.push({
+            x: player.x,
+            y: player.y,
+            vx: (dx / length) * 500,
+            vy: (dy / length) * 500,
+            r: 11,
+            life: 2.2,
+            spin: 0
+        });
+
+        playTone(300, 0.07, "square", 0.025);
+        updateHUD();
+        message.textContent = "BANANA AWAY!";
+    }
+
+    function movePlayer(dt) {
+        let dx = 0;
+        let dy = 0;
+
+        if (keys.ArrowLeft || keys.KeyA) dx--;
+        if (keys.ArrowRight || keys.KeyD) dx++;
+        if (keys.ArrowUp || keys.KeyW) dy--;
+        if (keys.ArrowDown || keys.KeyS) dy++;
+
+        if (dx && dy) {
+            dx *= Math.SQRT1_2;
+            dy *= Math.SQRT1_2;
+        }
+
+        let speed = player.speed;
+
+        let inPizza = false;
+
+        for (const pizza of pizzas) {
+            if (distance(player, pizza) < pizza.r + player.r * 0.35) {
+                inPizza = true;
+                break;
+            }
+        }
+
+        if (inPizza) {
+            // Pizza behaves like quicksand: movement slows and the player sinks.
+            speed *= 0.22;
+            player.squish = Math.min(1, player.squish + dt * 0.8);
+            pizzaDamageTimer -= dt;
+
+            player.y += 22 * dt;
+
+            if (pizzaDamageTimer <= 0) {
+                lives--;
+                pizzaDamageTimer = 1.4;
+
+                spawnParticles(player.x, player.y, "#ff4aa2", 12);
+                playTone(120, 0.12, "sawtooth", 0.04);
+
+                message.textContent = "PIZZA QUICKSAND! GET OUT!";
+                updateHUD();
+
+                if (lives <= 0) {
+                    endGame(false);
+                    return;
+                }
+            }
+        } else {
+            player.squish = Math.max(0, player.squish - dt * 2.5);
+            pizzaDamageTimer = 0;
+        }
+
+        player.x += dx * speed * dt;
+        player.y += dy * speed * dt;
+
+        player.x = clamp(player.x, 20, W - 20);
+        player.y = clamp(player.y, 25, H - 20);
+    }
+
+    function updateChicken(dt) {
+        chicken.bob += dt * 3;
+        chicken.squashTimer = Math.max(0, chicken.squashTimer - dt);
+        chickenDirectionTimer -= dt;
+
+        if (chickenDirectionTimer <= 0) {
+            chickenDirectionTimer = rand(1.1, 2.4);
+
+            const angle = Math.atan2(
+                player.y - chicken.y,
+                player.x - chicken.x
+            );
+
+            const variation = rand(-0.7, 0.7);
+            const speed = rand(75, 125);
+
+            chicken.vx = Math.cos(angle + variation) * speed;
+            chicken.vy = Math.sin(angle + variation) * speed;
+        }
+
+        chicken.x += chicken.vx * dt;
+        chicken.y += chicken.vy * dt;
+
+        // Bounce away from arena boundaries.
+        if (chicken.x < chicken.r || chicken.x > W - chicken.r) {
+            chicken.vx *= -1;
+            chicken.x = clamp(chicken.x, chicken.r, W - chicken.r);
+        }
+
+        if (chicken.y < chicken.r || chicken.y > H - chicken.r) {
+            chicken.vy *= -1;
+            chicken.y = clamp(chicken.y, chicken.r, H - chicken.r);
+        }
+
+        // Chickens lay bananas frequently enough to keep combat moving.
+        dropTimer -= dt;
+
+        if (dropTimer <= 0) {
+            dropTimer = rand(1.4, 2.3);
+            spawnBanana(
+                chicken.x + rand(-35, 35),
+                chicken.y + chicken.r * 0.65
+            );
+        }
+
+        // Chickens occasionally charge at the player to create a squash hazard.
+        if (distance(player, chicken) < chicken.r + player.r + 24 &&
+            damageCooldown <= 0) {
+
+            lives--;
+            damageCooldown = 1.4;
+            chicken.squashTimer = 0.35;
+
+            spawnParticles(player.x, player.y, "#ff2a83", 18);
+            playTone(100, 0.2, "sawtooth", 0.05);
+
+            player.x = clamp(
+                player.x + (player.x < chicken.x ? -70 : 70),
+                20,
+                W - 20
+            );
+
+            player.y = clamp(
+                player.y + (player.y < chicken.y ? -70 : 70),
+                20,
+                H - 20
+            );
+
+            updateHUD();
+
+            if (lives <= 0) {
+                endGame(false);
+            } else {
+                message.textContent = "SQUAWK! A chicken squashed you! Watch out!";
+            }
+        }
+    }
+
+    function updateBananas(dt) {
+        for (let i = bananas.length - 1; i >= 0; i--) {
+            const b = bananas[i];
+
+            b.bob += dt * 4;
+            b.life -= dt;
+
+            if (distance(player, b) < player.r + b.r + 5) {
+                ammo++;
+                score += 10;
+
+                spawnParticles(b.x, b.y, "#fff000", 10);
+                playTone(620, 0.07, "sine", 0.035);
+
+                bananas.splice(i, 1);
+                updateHUD();
+
+                message.textContent = "BANANA COLLECTED! AMMO +1 🍌";
+                continue;
+            }
+
+            if (b.life <= 0) {
+                bananas.splice(i, 1);
+            }
+        }
+    }
+
+    function updateShots(dt) {
+        for (let i = shots.length - 1; i >= 0; i--) {
+            const shot = shots[i];
+
+            shot.x += shot.vx * dt;
+            shot.y += shot.vy * dt;
+            shot.spin += dt * 12;
+            shot.life -= dt;
+
+            if (distance(shot, chicken) < shot.r + chicken.r * 0.8) {
+                chickenHits++;
+                chicken.hp = chickenHits;
+                score += 50;
+
+                spawnParticles(shot.x, shot.y, "#ff3dba", 18);
+                playTone(520 + chickenHits * 35, 0.12, "triangle", 0.045);
+
+                shots.splice(i, 1);
+                updateHUD();
+
+                message.textContent =
+                    "DIRECT HIT! CHICKEN DAMAGE: " +
+                    chickenHits + "/" + WIN_HITS;
+
+                if (chickenHits >= WIN_HITS) {
+                    endGame(true);
+                    return;
+                }
+
+                continue;
+            }
+
+            if (shot.life <= 0 ||
+                shot.x < -30 || shot.x > W + 30 ||
+                shot.y < -30 || shot.y > H + 30) {
+                shots.splice(i, 1);
+            }
+        }
+    }
+
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+
+            p.vx *= 0.98;
+            p.vy += 80 * dt;
+            p.life -= dt;
+
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    function update(dt) {
+        elapsed += dt;
+
+        damageCooldown = Math.max(0, damageCooldown - dt);
+        fireCooldown = Math.max(0, fireCooldown - dt);
+
+        movePlayer(dt);
+
+        if (!running) return;
+
+        updateChicken(dt);
+
+        if (!running) return;
+
+        updateBananas(dt);
+        updateShots(dt);
+        updateParticles(dt);
+
+        for (const pizza of pizzas) {
+            pizza.spin += dt * 0.15;
+        }
+    }
+
+    function drawBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, W, H);
+        gradient.addColorStop(0, "#fff900");
+        gradient.addColorStop(0.5, "#ffd500");
+        gradient.addColorStop(1, "#ffb000");
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, W, H);
+
+        // Animated psychedelic rings.
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+
+        for (let i = 0; i < 9; i++) {
+            const x = W * 0.5 + Math.sin(elapsed * 0.45 + i) * 420;
+            const y = H * 0.5 + Math.cos(elapsed * 0.35 + i * 1.2) * 240;
+            const r = 80 + i * 32;
+
+            ctx.beginPath();
+            ctx.arc(x, y, r, elapsed * 0.3, elapsed * 0.3 + Math.PI * 1.6);
+            ctx.strokeStyle = i % 2 ? "#ff00c8" : "#7900ff";
+            ctx.lineWidth = 12 + i;
+            ctx.stroke();
+        }
+
+        ctx.restore();
+
+        // Swirling checkerboard floor.
+        const cell = 52;
+
+        for (let row = 0; row < Math.ceil(H / cell); row++) {
+            for (let col = 0; col < Math.ceil(W / cell); col++) {
+                const wobble = Math.sin(
+                    elapsed * 1.5 + row * 0.6 + col * 0.7
+                ) * 5;
+
+                if ((row + col) % 2 === 0) {
+                    ctx.fillStyle = "rgba(255,255,255,0.13)";
+                    ctx.fillRect(
+                        col * cell + wobble,
+                        row * cell,
+                        cell - 2,
+                        cell - 2
+                    );
+                }
+            }
+        }
+
+        // A few psychedelic daisies decorate the arena.
+        for (let i = 0; i < 12; i++) {
+            const x = (i * 113 + 45) % W;
+            const y = (i * 79 + 28) % H;
+            const r = 8 + Math.sin(elapsed * 2 + i) * 2;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(elapsed * 0.2 + i);
+
+            for (let j = 0; j < 6; j++) {
+                ctx.rotate(Math.PI / 3);
+                ctx.beginPath();
+                ctx.ellipse(0, -r, r * 0.4, r, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "#ff39a6";
+                ctx.fill();
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    function drawPizza(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.spin);
+
+        // Dark shadow makes the hazard easier to spot.
+        ctx.beginPath();
+        ctx.arc(5, 8, p.r + 7, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(80,25,30,0.35)";
+        ctx.fill();
+
+        // Crust.
+        ctx.beginPath();
+        ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#b75a16";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, p.r - 7, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffdd45";
+        ctx.fill();
+
+        // Cheese and tomato swirls.
+        ctx.beginPath();
+        ctx.arc(0, 0, p.r - 13, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffb900";
+        ctx.fill();
+
+        for (let i = 0; i < 7; i++) {
+            const angle = i * Math.PI * 2 / 7;
+            const x = Math.cos(angle) * p.r * 0.55;
+            const y = Math.sin(angle) * p.r * 0.55;
+
+            ctx.beginPath();
+            ctx.arc(x, y, p.r * 0.12, 0, Math.PI * 2);
+            ctx.fillStyle = "#e92348";
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(x - 3, y - 3, 3, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffca65";
+            ctx.fill();
+        }
+
+        // Hazard label.
+        ctx.rotate(-p.spin);
+        ctx.fillStyle = "#4c1247";
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("QUICKSAND!", 0, p.r + 21);
+
+        ctx.restore();
+    }
+
+    function drawBanana(x, y, scale = 1, rotation = 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.scale(scale, scale);
+
+        // Banana silhouette.
+        ctx.beginPath();
+        ctx.moveTo(-11, -13);
+        ctx.quadraticCurveTo(13, -23, 15, -5);
+        ctx.quadraticCurveTo(9, 14, -12, 16);
+        ctx.quadraticCurveTo(-2, 8, 3, 0);
+        ctx.quadraticCurveTo(8, -7, -11, -13);
+        ctx.closePath();
+
+        ctx.fillStyle = "#fff000";
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#795000";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-11, -13);
+        ctx.lineTo(-15, -17);
+        ctx.moveTo(-12, 16);
+        ctx.lineTo(-16, 18);
+        ctx.strokeStyle = "#5c3815";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawChicken(c) {
+        ctx.save();
+        ctx.translate(c.x, c.y + Math.sin(c.bob) * 5);
+
+        if (c.vx < 0) ctx.scale(-1, 1);
+
+        // Chicken shadow.
+        ctx.beginPath();
+        ctx.ellipse(0, c.r * 0.88, c.r * 0.9, c.r * 0.25, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(90,50,0,0.22)";
+        ctx.fill();
+
+        // Legs.
+        ctx.strokeStyle = "#c66a0b";
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+
+        for (const lx of [-22, 22]) {
+            ctx.beginPath();
+            ctx.moveTo(lx, c.r * 0.48);
+            ctx.lineTo(lx, c.r * 0.83);
+            ctx.lineTo(lx - 9, c.r * 0.85);
+            ctx.moveTo(lx, c.r * 0.83);
+            ctx.lineTo(lx + 10, c.r * 0.85);
+            ctx.stroke();
+        }
+
+        // Body.
+        ctx.beginPath();
+        ctx.ellipse(0, 0, c.r * 0.95, c.r * 0.84, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#fffdf1";
+        ctx.fill();
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "#4b3146";
+        ctx.stroke();
+
+        // Wing.
+        ctx.beginPath();
+        ctx.ellipse(-c.r * 0.42, c.r * 0.13, c.r * 0.34, c.r * 0.4, -0.3, 0, Math.PI * 2);
+        ctx.fillStyle = "#eee8d6";
+        ctx.fill();
+        ctx.stroke();
+
+        // Tail feathers.
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(
+                -c.r * 0.77 - i * 6,
+                -c.r * 0.4 + i * 12,
+                12,
+                21,
+                -0.5,
+                0,
+                Math.PI * 2
+            );
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Neck and head.
+        ctx.beginPath();
+        ctx.arc(c.r * 0.22, -c.r * 0.49, c.r * 0.42, 0, Math.PI * 2);
+        ctx.fillStyle = "#fffdf1";
+        ctx.fill();
+        ctx.stroke();
+
+        // Comb.
+        ctx.fillStyle = "#ef294b";
+        ctx.strokeStyle = "#4b3146";
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(c.r * 0.01, -c.r * 0.83);
+        ctx.quadraticCurveTo(c.r * 0.0, -c.r * 1.2, c.r * 0.18, -c.r * 0.94);
+        ctx.quadraticCurveTo(c.r * 0.35, -c.r * 1.22, c.r * 0.4, -c.r * 0.87);
+        ctx.quadraticCurveTo(c.r * 0.62, -c.r * 1.03, c.r * 0.59, -c.r * 0.71);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Eye.
+        ctx.beginPath();
+        ctx.arc(c.r * 0.35, -c.r * 0.52, c.r * 0.11, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "#4b3146";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(c.r * 0.38, -c.r * 0.52, c.r * 0.055, 0, Math.PI * 2);
+        ctx.fillStyle = "#161022";
+        ctx.fill();
+
+        // Beak.
+        ctx.beginPath();
+        ctx.moveTo(c.r * 0.57, -c.r * 0.37);
+        ctx.lineTo(c.r * 0.96, -c.r * 0.23);
+        ctx.lineTo(c.r * 0.56, -c.r * 0.11);
+        ctx.closePath();
+        ctx.fillStyle = "#ff9f00";
+        ctx.fill();
+        ctx.stroke();
+
+        // Wattle.
+        ctx.beginPath();
+        ctx.ellipse(c.r * 0.5, -c.r * 0.04, c.r * 0.1, c.r * 0.19, 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = "#ef294b";
+        ctx.fill();
+        ctx.stroke();
+
+        // Hit counter.
+        ctx.scale(c.vx < 0 ? -1 : 1, 1);
+        ctx.fillStyle = "#30123b";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("HITS: " + chickenHits + "/" + WIN_HITS, 0, -c.r * 1.28);
+
+        ctx.restore();
+    }
+
+    function drawPlayer(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+
+        const scaleY = 1 - p.squish * 0.6;
+        ctx.scale(1, scaleY);
+
+        // Shadow.
+        ctx.beginPath();
+        ctx.ellipse(0, p.r * 0.8, p.r * 1.1, p.r * 0.45, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(90,0,80,0.3)";
+        ctx.fill();
+
+        // Body.
+        ctx.beginPath();
+        ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff36a5";
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#3b184d";
+        ctx.stroke();
+
+        // Helmet.
+        ctx.beginPath();
+        ctx.arc(0, -4, p.r * 0.78, Math.PI, Math.PI * 2);
+        ctx.lineTo(p.r * 0.78, 0);
+        ctx.lineTo(-p.r * 0.78, 0);
+        ctx.closePath();
+        ctx.fillStyle = "#fff000";
+        ctx.fill();
+        ctx.stroke();
+
+        // Visor.
+        ctx.beginPath();
+        ctx.ellipse(5, -1, 10, 7, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#241333";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(8, -3, 3, 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+
+        // Tiny cannon.
+        ctx.save();
+        ctx.rotate(Math.atan2(chicken.y - p.y, chicken.x - p.x));
+
+        ctx.fillStyle = "#56505e";
+        ctx.fillRect(9, -7, 25, 14);
+
+        ctx.fillStyle = "#9a92a5";
+        ctx.fillRect(15, -4, 19, 8);
+
+        ctx.strokeStyle = "#241333";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(9, -7, 25, 14);
+
+        ctx.restore();
+
+        ctx.restore();
+    }
+
+    function drawShots() {
+        for (const s of shots) {
+            drawBanana(s.x, s.y, 0.8, s.spin);
+        }
+    }
+
+    function drawParticles() {
+        for (const p of particles) {
+            ctx.save();
+            ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    function drawArenaText() {
+        ctx.save();
+
+        ctx.fillStyle = "rgba(50,20,50,0.7)";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "left";
+
+        ctx.fillText("BANANA ARENA", 14, 22);
+
+        ctx.textAlign = "right";
+        ctx.fillText("DANGER: PIZZA QUICKSAND", W - 14, 22);
+
+        ctx.restore();
+    }
+
+    function render() {
+        drawBackground();
+
+        for (const pizza of pizzas) drawPizza(pizza);
+
+        for (const banana of bananas) {
+            const y = banana.y + Math.sin(banana.bob) * 4;
+
+            ctx.save();
+            ctx.globalAlpha = banana.life < 3
+                ? 0.45 + Math.sin(elapsed * 10) * 0.35
+                : 1;
+
+            drawBanana(banana.x, y, 1.05, Math.sin(banana.bob) * 0.15);
+
+            ctx.restore();
+        }
+
+        drawShots();
+        drawChicken(chicken);
+        drawPlayer(player);
+        drawParticles();
+        drawArenaText();
+
+        // Temporary invulnerability flashes after a hit.
+        if (damageCooldown > 0 && Math.floor(elapsed * 12) % 2 === 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.12;
+            ctx.fillStyle = "#ff00a8";
+            ctx.fillRect(0, 0, W, H);
+            ctx.restore();
+        }
+    }
+
+    function loop(timestamp) {
+        animationFrame = 0;
+
+        const dt = Math.min(0.033, Math.max(0, (timestamp - lastTime) / 1000));
+        lastTime = timestamp;
+
+        if (running) {
+            update(dt);
+        }
+
+        render();
+
+        if (running || !gameOver) {
+            animationFrame = requestAnimationFrame(loop);
+        }
+    }
+
+    function ensureLoop() {
+        if (!animationFrame) {
+            lastTime = performance.now();
+            animationFrame = requestAnimationFrame(loop);
+        }
+    }
+
+    // Keyboard controls.
+    document.addEventListener("keydown", event => {
+        const key = event.code;
+
+        if ([
+            "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+            "Space", "KeyW", "KeyA", "KeyS", "KeyD"
+        ].includes(key)) {
+            event.preventDefault();
+        }
+
+        if (key === "Space" && !event.repeat) {
+            if (!running && !gameOver) {
+                startGame();
+            } else if (running) {
+                fireBanana();
+            }
+            return;
+        }
+
+        if (key === "Enter" && !running && !won) {
+            startGame();
+            return;
+        }
+
+        keys[key] = true;
+    });
+
+    document.addEventListener("keyup", event => {
+        keys[event.code] = false;
+    });
+
+    // Touch controls support press-and-hold movement and firing.
+    const touchButtons = document.querySelectorAll("#touchControls button");
+
+    touchButtons.forEach(button => {
+        const key = button.dataset.key;
+
+        const press = event => {
+            event.preventDefault();
+
+            if (!running) {
+                if (!gameOver) startGame();
+                else if (!won) startGame();
+            }
+
+            if (key === "Space") {
+                fireBanana();
+            } else {
+                keys[key] = true;
+            }
+        };
+
+        const release = event => {
+            event.preventDefault();
+            keys[key] = false;
+        };
+
+        button.addEventListener("pointerdown", press);
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("pointerleave", release);
+    });
+
+    // Clicking/tapping the arena can move the player toward the target point.
+    canvas.addEventListener("pointerdown", event => {
+        if (!running) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const targetX = (event.clientX - rect.left) * W / rect.width;
+        const targetY = (event.clientY - rect.top) * H / rect.height;
+
+        const dx = targetX - player.x;
+        const dy = targetY - player.y;
+        const d = Math.hypot(dx, dy);
+
+        if (d > 20) {
+            player.x = clamp(
+                player.x + dx * Math.min(1, 120 / d),
+                20,
+                W - 20
+            );
+
+            player.y = clamp(
+                player.y + dy * Math.min(1, 120 / d),
+                20,
+                H - 20
+            );
+        }
+    });
+
+    startButton.addEventListener("click", () => {
+        startGame();
+        ensureLoop();
+    });
+
+    $("rewardRestart").addEventListener("click", () => {
+        reward.classList.add("hidden");
+        startGame();
+        ensureLoop();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    playVideoFallback.addEventListener("click", playVictoryVideo);
+
+    // Draw the initial title screen behind the instructions.
+    resetGame();
+
+    running = false;
+    gameOver = false;
+
+    render();
+    ensureLoop();
+})();
+</script>
+
+</body>
+</html>
